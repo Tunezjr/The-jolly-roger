@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>The Jolly Roger</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link id="themeStylesheet" rel="stylesheet" href="themes/theme-neverland.css">
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
+
+<style>
+
+body{
+background:var(--bg);
+color:var(--text);
+font-family:Arial;
+padding:30px;
+margin:0;
+}
+
+h1{
+color:var(--accent);
+}
+
+.grid{
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:15px;
+}
+
+.card{
+background:var(--card);
+border:1px solid var(--border);
+padding:20px;
+border-radius:12px;
+box-shadow:var(--glow);
+}
+
+input{
+padding:8px;
+margin-top:6px;
+width:100%;
+box-sizing:border-box;
+background:var(--input);
+color:var(--text);
+border:1px solid var(--border);
+border-radius:6px;
+}
+
+button{
+margin-top:10px;
+padding:10px;
+width:100%;
+background:var(--button);
+color:var(--buttonText);
+border:none;
+border-radius:8px;
+cursor:pointer;
+}
+
+button:hover{
+opacity:0.9;
+}
+
+select{
+padding:10px;
+background:var(--card);
+color:var(--text);
+border:1px solid var(--border);
+border-radius:8px;
+}
+
+canvas{
+width:100% !important;
+height:auto !important;
+}
+
+@media (max-width:1000px){
+.grid{grid-template-columns:repeat(2,1fr);}
+body{padding:20px;}
+}
+
+@media (max-width:600px){
+.grid{grid-template-columns:1fr;}
+body{padding:15px;}
+h1{font-size:22px;}
+.card{padding:15px;}
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>The Jolly Roger</h1>
+<h3>Neverland DeFi Strategy Dashboard</h3>
+
+<div class="card">
+<label>Theme</label>
+<select id="themeSwitcher">
+<option value="themes/theme-neverland.css">Neverland</option>
+<option value="themes/theme-pirate.css">Pirate</option>
+<option value="themes/theme-dark.css">Dark</option>
+<option value="themes/theme-light.css">Light</option>
+</select>
+</div>
+
+<br>
+
+<div class="grid">
+
+<div class="card">
+<h3>TVL</h3>
+<p id="tvl"></p>
+</div>
+
+<div class="card">
+<h3>Borrowed</h3>
+<p id="borrowed"></p>
+</div>
+
+<div class="card">
+<h3>Utilization</h3>
+<p id="utilization"></p>
+</div>
+
+<div class="card">
+<h3>DUST Price</h3>
+<p id="dust"></p>
+</div>
+
+</div>
+
+<br>
+
+<div class="card">
+<h3>Most Profitable Path</h3>
+<div id="strategy"></div>
+</div>
+
+<br>
+
+<div class="card">
+
+<h3>Leverage Strategy Calculator</h3>
+
+Deposit amount
+<input id="deposit">
+
+Asset APY %
+<input id="apy">
+
+<button onclick="calcLeverage()">Calculate</button>
+
+<div id="leverage"></div>
+
+</div>
+
+<br>
+
+<div class="card">
+
+<h3>Liquidation Risk</h3>
+
+Collateral
+<input id="collateral">
+
+Borrowed
+<input id="borrow">
+
+LTV %
+<input id="ltv">
+
+<button onclick="calcRisk()">Calculate</button>
+
+<div id="risk"></div>
+
+</div>
+
+<br>
+
+<div class="card">
+
+<h3>Wallet Strategy Simulator</h3>
+
+Wallet Address
+<input id="wallet">
+
+<button onclick="simulate()">Analyze</button>
+
+<div id="walletOutput"></div>
+
+</div>
+
+<br>
+
+<div class="card">
+
+<h3>Borrow Loop Optimizer</h3>
+
+Deposit
+<input id="loopDeposit">
+
+Supply APY %
+<input id="supplyApy">
+
+Borrow APY %
+<input id="borrowApy">
+
+<button onclick="optimizeLoop()">Optimize</button>
+
+<div id="loopOutput"></div>
+
+</div>
+
+<br>
+
+<div class="card">
+
+<h3>APY Chart</h3>
+<canvas id="chart"></canvas>
+
+</div>
+
+<script>
+
+const RPC="https://rpc.monad.xyz"
+const provider=new ethers.JsonRpcProvider(RPC)
+
+const themeSwitcher=document.getElementById("themeSwitcher")
+
+themeSwitcher.addEventListener("change",function(){
+document.getElementById("themeStylesheet").href=this.value
+})
+
+async function loadProtocol(){
+
+try{
+
+const res=await fetch("https://api.llama.fi/protocol/neverland")
+const data=await res.json()
+
+document.getElementById("tvl").innerText="$"+Math.round(data.tvl)
+
+}catch(e){}
+
+}
+
+async function loadBorrowed(){
+
+try{
+
+const res=await fetch("https://api.llama.fi/borrowed/neverland")
+const data=await res.json()
+
+document.getElementById("borrowed").innerText="$"+Math.round(data.totalBorrowed)
+
+const tvlRes=await fetch("https://api.llama.fi/protocol/neverland")
+const tvlData=await tvlRes.json()
+
+const util=data.totalBorrowed/tvlData.tvl*100
+
+document.getElementById("utilization").innerText=util.toFixed(2)+"%"
+
+}catch(e){}
+
+}
+
+async function loadPools(){
+
+try{
+
+const res=await fetch("https://yields.llama.fi/pools")
+const json=await res.json()
+
+const pools=(json.data||[]).filter(p=>p.project==="neverland")
+
+if(!pools.length)return
+
+let best=null
+const labels=[]
+const apys=[]
+
+pools.forEach(p=>{
+labels.push(p.symbol)
+apys.push(p.apy)
+if(!best||p.apy>best.apy){best=p}
+})
+
+document.getElementById("strategy").innerHTML="Supply "+best.symbol+" pool<br>APY "+best.apy.toFixed(2)+"%"
+
+buildChart(labels,apys)
+
+}catch(e){}
+
+}
+
+function buildChart(labels,data){
+
+new Chart(document.getElementById("chart"),{
+type:"bar",
+data:{labels:labels,datasets:[{label:"APY",data:data}]}
+})
+
+}
+
+async function loadToken(){
+
+try{
+
+const res=await fetch("https://api.coingecko.com/api/v3/simple/price?ids=pixie-dust&vs_currencies=usd")
+const data=await res.json()
+
+document.getElementById("dust").innerText="$"+data["pixie-dust"].usd
+
+}catch(e){}
+
+}
+
+function calcLeverage(){
+
+const deposit=parseFloat(document.getElementById("deposit").value||0)
+const apy=parseFloat(document.getElementById("apy").value||0)
+
+const leverage=3
+const profit=deposit*apy/100*leverage
+
+document.getElementById("leverage").innerText="Estimated leveraged yield "+profit.toFixed(2)
+
+}
+
+function calcRisk(){
+
+const collateral=parseFloat(document.getElementById("collateral").value||0)
+const borrow=parseFloat(document.getElementById("borrow").value||0)
+const ltv=parseFloat(document.getElementById("ltv").value||0)
+
+const limit=collateral*ltv/100
+const buffer=limit-borrow
+
+document.getElementById("risk").innerText="Liquidation buffer "+buffer.toFixed(2)
+
+}
+
+async function simulate(){
+
+try{
+
+const wallet=document.getElementById("wallet").value
+const balance=await provider.getBalance(wallet)
+
+document.getElementById("walletOutput").innerText="Wallet balance "+ethers.formatEther(balance)+" MON"
+
+}catch(e){}
+
+}
+
+function optimizeLoop(){
+
+const deposit=parseFloat(document.getElementById("loopDeposit").value||0)
+const supply=parseFloat(document.getElementById("supplyApy").value||0)
+const borrow=parseFloat(document.getElementById("borrowApy").value||0)
+
+let best=0
+let loops=0
+
+for(let i=1;i<=5;i++){
+
+const leverage=i+1
+const net=(supply-borrow)*leverage
+
+if(net>best){
+best=net
+loops=i
+}
+
+}
+
+document.getElementById("loopOutput").innerText="Optimal loops "+loops+" Net APR "+best.toFixed(2)+"%"
+
+}
+
+async function load(){
+
+await loadProtocol()
+await loadBorrowed()
+await loadPools()
+await loadToken()
+
+}
+
+load()
+setInterval(load,30000)
+
+</script>
+
+</body>
+
+</html>
