@@ -1,0 +1,21 @@
+:root{
+
+--bg: radial-gradient(circle at top,#0b2c3d,#041018);
+
+--card:#0f1f2b;
+
+--text:#e8f7ff;
+
+--accent:#6fffe9;
+
+--border:#1c3645;
+
+--button:#1fb6ff;
+
+--buttonText:#00131d;
+
+--input:#091822;
+
+--glow:0 0 20px rgba(111,255,233,0.15);
+
+}
