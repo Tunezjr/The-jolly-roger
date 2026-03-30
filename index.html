@@ -1,0 +1,89 @@
+<head>
+
+<title>The Jolly Roger</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="theme-neverland.css">
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
+
+<style>
+
+body{
+background:var(--bg);
+color:var(--text);
+font-family:Arial;
+padding:30px;
+margin:0;
+}
+
+h1{
+color:var(--accent);
+}
+
+.grid{
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:15px;
+}
+
+.card{
+background:var(--card);
+border:1px solid var(--border);
+padding:20px;
+border-radius:12px;
+box-shadow:var(--glow);
+}
+
+input{
+padding:8px;
+margin-top:6px;
+width:100%;
+box-sizing:border-box;
+background:var(--input);
+color:var(--text);
+border:1px solid var(--border);
+border-radius:6px;
+}
+
+button{
+margin-top:10px;
+padding:10px;
+width:100%;
+background:var(--button);
+color:var(--buttonText);
+border:none;
+border-radius:8px;
+cursor:pointer;
+}
+
+button:hover{
+opacity:0.9;
+}
+
+canvas{
+width:100% !important;
+height:auto !important;
+}
+
+/* tablet */
+
+@media (max-width:1000px){
+.grid{grid-template-columns:repeat(2,1fr);}
+body{padding:20px;}
+}
+
+/* mobile */
+
+@media (max-width:600px){
+.grid{grid-template-columns:1fr;}
+body{padding:15px;}
+h1{font-size:22px;}
+.card{padding:15px;}
+}
+
+</style>
+
+</head>
