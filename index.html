@@ -1706,7 +1706,7 @@ async function loadWallet() {
   }
 
   try {
-    const provider = new ethers.JsonRpcProvider(CFG.RPC, CFG.CHAIN, {staticNetwork:true});
+    const provider = new ethers.JsonRpcProvider(CFG.RPC);
     const pool     = new ethers.Contract(CFG.POOL, POOL_ABI, provider);
     const data     = await pool.getUserAccountData(addr);
 
